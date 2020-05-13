@@ -7,13 +7,18 @@ from statistics import mean
 import matplotlib.pyplot as plt
 
 
-def calculate_euclidean_distance(point1, point2):
+def calculate_distance(point1, point2, type):
     sum = 0.0
-    for i in range(len(point1)):
-        sum+=(point1[i] - point2[i])**2
-    return math.sqrt(sum)
+    if type == "Euclidean":
+        for i in range(len(point1)):
+            sum+=(point1[i] - point2[i])**2
+        return math.sqrt(sum)
+    if type == "Manhattan":
+        for i in range(len(point1)):
+            sum+= abs(point1[i] - point2[i])
+        return sum
 
-def get_clusters(training_data, k):
+def get_clusters(training_data, k, dist):
 
     #initialise centroids
     centroids = []
@@ -29,7 +34,7 @@ def get_clusters(training_data, k):
                 min_dist = float("inf")
                 temp_centroid = []
                 for c in range(len(centroids)):
-                    distance = calculate_euclidean_distance(training_data[point][:-1], centroids[c])
+                    distance = calculate_distance(training_data[point][:-1], centroids[c], dist)
                     if distance<min_dist:
                         min_dist=distance
                         temp_centroid = centroids[c]
@@ -62,15 +67,15 @@ def get_clusters(training_data, k):
                 min_dist = float("inf")
                 temp_centroid = []
                 for c in range(len(centroids)):
-                    distance = calculate_euclidean_distance(training_data[point][:-2], centroids[c])
+                    distance = calculate_distance(training_data[point][:-2], centroids[c], dist)
                     if distance<min_dist:
                         min_dist=distance
                         temp_centroid = centroids[c]
                 training_data[point][-1] = temp_centroid
     return training_data, centroids
 
-def create_data():
-    with open("Breast_cancer_data.csv", newline='') as f:
+def create_data(path):
+    with open(path, newline='') as f:
         reader = csv.reader(f)
         final_data = list(reader)
         final_data.pop(0)
@@ -84,13 +89,13 @@ def create_data():
         testing_data = final_data[int(0.80 * len(final_data)):]
     return training_data, testing_data
 
-def rms(trained_data):
+def rms(trained_data, dist):
     distance = 0
     sum = 0
     for i in trained_data:
         point = i[:-2]
         centroid = i[-1]
-        distance = calculate_euclidean_distance(point,centroid)**2
+        distance = calculate_distance(point,centroid, dist)**2
         sum +=distance
     return sum
 
@@ -98,7 +103,7 @@ def plot_error(k_vals, error):
     plt.plot(k_vals,error)
     plt.show()
 
-def test_kmeans(trained_data, testing_data, centroids):
+def test_kmeans(trained_data, testing_data, centroids, dist):
     result = []
     for c in centroids:
         count_1 = 0
@@ -123,7 +128,7 @@ def test_kmeans(trained_data, testing_data, centroids):
         label = i[-1]
         min_dist = float("inf")
         for c in range(len(result)):
-            distance = calculate_euclidean_distance(point, result[c][0])
+            distance = calculate_distance(point, result[c][0], dist)
             if distance<min_dist:
                 min_dist=distance
                 prediction = result[c][1]
@@ -133,20 +138,35 @@ def test_kmeans(trained_data, testing_data, centroids):
             wrong+=1
     print(correct,wrong, (correct/(correct+wrong))*100)
 
-
-
 def main():
+    dist = ""
+    path = ""
+    k_v = 0
+    for i in range(len(sys.argv)):
+        if sys.argv[i] == "--Path":
+            path = sys.argv[i+1]
+        if sys.argv[i] == "--k":
+            k_v = int(sys.argv[i+1])
+        if sys.argv[i] == "[--Distance Manhattan]":
+            dist = "Manhattan"
+        else:
+            dist = "Euclidean"
+
     error = []
     k_vals = []
+    training_data, testing_data = create_data(path)
     for k in range(2,10):
         k_vals.append(k)
-        training_data, testing_data = create_data()
-        trained_data, centroids = get_clusters(training_data, k)
-        error.append(rms(trained_data))
+        if k>2:
+            for i in range(len(training_data)):
+                training_data[i].remove(training_data[i][-1])
+        trained_data, centroids = get_clusters(training_data, k, dist)
+        error.append(rms(trained_data, dist))
     plot_error(k_vals, error)
-    training_data, testing_data = create_data()
-    trained_data, centroids = get_clusters(training_data, 4)
-    test_kmeans(trained_data, testing_data, centroids)
+    for i in range(len(training_data)):
+        training_data[i].remove(training_data[i][-1])
+    trained_data, centroids = get_clusters(training_data, k_v, dist)
+    test_kmeans(trained_data, testing_data, centroids, dist)
 
 
 
