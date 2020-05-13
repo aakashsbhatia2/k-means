@@ -1,13 +1,18 @@
 import csv
 import math
 import random
-import numpy as np
 import sys
-from statistics import mean
 import matplotlib.pyplot as plt
+from scipy.spatial import distance
 
 
 def calculate_distance(point1, point2, type):
+    """
+
+    Here, I am calculating the distance between point 1 and point 2. The distance metric is based on the "type" parameter.
+    There are 2 types of distances - Manhattan and Euclidean
+
+    """
     sum = 0.0
     if type == "Euclidean":
         for i in range(len(point1)):
@@ -20,15 +25,24 @@ def calculate_distance(point1, point2, type):
 
 def get_clusters(training_data, k, dist):
 
-    #initialise centroids
+    """
+
+    Step 1:
+    I initialize the centroids to k random points. The number of centroids depends on the k value defined
+
+    Step 2:
+    For each point, check the distance from the current centroids
+    map each point to the nearest centroid
+    STOPPING CONDITION: If the new centroid != current centroid, update the centroids to the mean of the current points mapped to that centroid
+    If the centroid for 2 consecutive iterations remains the same, the k-means algorithm has converged
+
+    """
     centroids = []
     for i in range(k):
         x = random.choice(training_data)
         centroids.append(x[:-1])
 
-    #calculate distance of each point from centroids:
     for t in range(30):
-        # For first iteration, calculate distance between point and centroids and append centroid with lowest value
         if t == 0:
             for point in range(len(training_data)):
                 min_dist = float("inf")
@@ -40,7 +54,6 @@ def get_clusters(training_data, k, dist):
                         temp_centroid = centroids[c]
                 training_data[point].append(temp_centroid)
         else:
-            #calculate new centroids
             temp_centroids = []
             for c in range(len(centroids)):
                 sum_1 = 0
@@ -61,8 +74,10 @@ def get_clusters(training_data, k, dist):
                 temp = [sum_1/count, sum_2/count, sum_3/count, sum_4/count, sum_5/count]
                 temp_centroids.append(temp)
 
-            centroids = temp_centroids
-
+            if centroids != temp_centroids:
+                centroids = temp_centroids
+            else:
+                break
             for point in range(len(training_data)):
                 min_dist = float("inf")
                 temp_centroid = []
@@ -75,6 +90,12 @@ def get_clusters(training_data, k, dist):
     return training_data, centroids
 
 def create_data(path):
+    """
+
+    Reading the csv file at the path inputted by the user.
+
+    """
+
     with open(path, newline='') as f:
         reader = csv.reader(f)
         final_data = list(reader)
@@ -85,76 +106,86 @@ def create_data(path):
             for j in range(len(final_data[i])):
                 final_data[i][j] = float(final_data[i][j])
 
-        training_data = final_data[:int(0.80 * len(final_data))]
-        testing_data = final_data[int(0.80 * len(final_data)):]
-    return training_data, testing_data
+    return final_data
 
 def rms(trained_data, dist):
-    distance = 0
+    """
+
+    Calculating error to obtain the optimal k-value for the dataset
+
+    """
+
     sum = 0
     for i in trained_data:
         point = i[:-2]
         centroid = i[-1]
-        distance = calculate_distance(point,centroid, dist)**2
+        distance = (calculate_distance(point,centroid, dist)**2)**2
         sum +=distance
-    return sum
+    return math.sqrt(sum)
 
 def plot_error(k_vals, error):
+
+    """
+
+    Plotting the line chart to identify the elbow for k-means
+
+    """
+
     plt.plot(k_vals,error)
     plt.show()
 
-def test_kmeans(trained_data, testing_data, centroids, dist):
-    result = []
-    for c in centroids:
+def test_clusters(trained_data, centroids):
+
+    """
+
+    Testing the clusters (i.e. Checking the percentage of 0's and 1's in each cluster)
+
+    """
+
+    for c in range(len(centroids)):
         count_1 = 0
         count_0 = 0
-        for i in trained_data:
-            if i[-2] == 1.0 and i[-1]==c:
-                count_1 += 1
-            if i[-2] == 0.0 and i[-1] == c:
+        for p in range(len(trained_data)):
+            if trained_data[p][-2] == 0 and trained_data[p][-1] == centroids[c]:
                 count_0 += 1
-        if count_0>count_1:
-            result.append([c, 0.0])
-        else:
-            result.append([c, 1.0])
-    print(result)
-    distance = 0
-    predicted_centroid = []
-    prediction = 0
-    correct = 0
-    wrong = 0
-    for i in testing_data:
-        point = i[:-2]
-        label = i[-1]
-        min_dist = float("inf")
-        for c in range(len(result)):
-            distance = calculate_distance(point, result[c][0], dist)
-            if distance<min_dist:
-                min_dist=distance
-                prediction = result[c][1]
-        if prediction == label:
-            correct+=1
-        else:
-            wrong+=1
-    print(correct,wrong, (correct/(correct+wrong))*100)
+            if trained_data[p][-2] == 1 and trained_data[p][-1] == centroids[c]:
+                count_1 += 1
+        print ("Centroid ", c+1, ":", centroids[c])
+        print("Number of 1's: ", count_1)
+        print("Number of 0's: ", count_0)
+        print("Percent 1's: ", round((count_1/(count_1 + count_0))*100,2))
+        print("Percent 0's: ", round((count_0 / (count_1 + count_0)) * 100,2))
+        print("****************")
+
 
 def main():
+    """
+
+    The program can be run in command line. 3 parameters can be initialised.
+    - MANDATORY: Using "--path", you can set the path to the dataset.
+    - OPTIONAL: Using "--k", you can set the k value. Default value = 2
+    - OPTIONAL: Using "[--distance Manhattan]", you can run k-means with Manhattan distance. Default is Euclidean Distance
+    """
+
     dist = ""
     path = ""
-    k_v = 0
+    k_v = 2
+    error = []
+    k_vals = []
+
     for i in range(len(sys.argv)):
-        if sys.argv[i] == "--Path":
+        if sys.argv[i] == "--path":
             path = sys.argv[i+1]
         if sys.argv[i] == "--k":
             k_v = int(sys.argv[i+1])
-        if sys.argv[i] == "[--Distance Manhattan]":
+        if sys.argv[i] == "[--distance Manhattan]":
             dist = "Manhattan"
         else:
             dist = "Euclidean"
 
-    error = []
-    k_vals = []
-    training_data, testing_data = create_data(path)
+
+    training_data = create_data(path)
+
     for k in range(2,10):
         k_vals.append(k)
         if k>2:
@@ -163,10 +194,13 @@ def main():
         trained_data, centroids = get_clusters(training_data, k, dist)
         error.append(rms(trained_data, dist))
     plot_error(k_vals, error)
+
     for i in range(len(training_data)):
         training_data[i].remove(training_data[i][-1])
+
     trained_data, centroids = get_clusters(training_data, k_v, dist)
-    test_kmeans(trained_data, testing_data, centroids, dist)
+
+    test_clusters(trained_data, centroids)
 
 
 
