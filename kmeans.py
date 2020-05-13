@@ -22,6 +22,9 @@ def calculate_distance(point1, point2, type):
         for i in range(len(point1)):
             sum+= abs(point1[i] - point2[i])
         return sum
+    if type == "Minkowski":
+        sum = distance.minkowski(point1, point2, p=3)
+        return sum
 
 def get_clusters(training_data, k, dist):
 
@@ -167,7 +170,7 @@ def main():
     - OPTIONAL: Using "[--distance Manhattan]", you can run k-means with Manhattan distance. Default is Euclidean Distance
     """
 
-    dist = ""
+    dist = "Euclidean"
     path = ""
     k_v = 2
     error = []
@@ -180,8 +183,8 @@ def main():
             k_v = int(sys.argv[i+1])
         if sys.argv[i] == "[--distance Manhattan]":
             dist = "Manhattan"
-        else:
-            dist = "Euclidean"
+        if sys.argv[i] == "[--distance Minkowski]":
+            dist = "Minkowski"
 
 
     training_data = create_data(path)
