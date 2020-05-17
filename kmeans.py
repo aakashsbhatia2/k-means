@@ -10,7 +10,7 @@ def calculate_distance(point1, point2, type):
     """
 
     Here, I am calculating the distance between point 1 and point 2. The distance metric is based on the "type" parameter.
-    There are 2 types of distances - Manhattan and Euclidean
+    There are 2 types of distances - Manhattan, Euclidean and Minkowski
 
     """
     sum = 0.0
@@ -117,12 +117,12 @@ def rms(trained_data, dist):
     Calculating error to obtain the optimal k-value for the dataset
 
     """
-
+    dist = "Euclidean"
     sum = 0
     for i in trained_data:
         point = i[:-2]
         centroid = i[-1]
-        distance = (calculate_distance(point,centroid, dist)**2)**2
+        distance = (calculate_distance(point,centroid, dist)**2)
         sum +=distance
     return math.sqrt(sum)
 
@@ -135,6 +135,8 @@ def plot_error(k_vals, error):
     """
 
     plt.plot(k_vals,error)
+    plt.xlabel('k-value')
+    plt.ylabel('Cost')
     plt.show()
 
 def test_clusters(trained_data, centroids):
