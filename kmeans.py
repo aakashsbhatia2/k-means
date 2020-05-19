@@ -117,14 +117,13 @@ def rms(trained_data, dist):
     Calculating error to obtain the optimal k-value for the dataset
 
     """
-    dist = "Euclidean"
     sum = 0
     for i in trained_data:
         point = i[:-2]
         centroid = i[-1]
         distance = (calculate_distance(point,centroid, dist)**2)
         sum +=distance
-    return math.sqrt(sum)
+    return sum
 
 def plot_error(k_vals, error):
 
